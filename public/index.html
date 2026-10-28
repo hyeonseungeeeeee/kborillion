@@ -16,10 +16,12 @@
   color-scheme:dark;
 }
 html,body{height:100%}
-body{margin:0;background:radial-gradient(140% 60% at 50% -5%,#22392b 0%,var(--night) 55%);background-color:var(--night);color:var(--chalk);
+[hidden]{display:none!important}
+body{margin:0;background:radial-gradient(140% 60% at 50% -5%,#22392b 0%,var(--night) 55%) no-repeat;background-color:var(--night);color:var(--chalk);
   font-family:var(--body);font-size:15px;line-height:1.55;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));}
 .wrap{max-width:620px;margin:0 auto;padding-block:20px 40px;display:flex;flex-direction:column;gap:14px}
+.stage,.side{display:flex;flex-direction:column;gap:14px;min-width:0}
 /* scoreboard */
 .board{background:var(--board);border:3px solid var(--board-edge);border-radius:6px;padding:10px 14px;display:grid;grid-template-columns:auto 1fr;gap:6px 18px;align-items:center;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.4)}
@@ -79,6 +81,12 @@ button:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
 .lb li.me .n::after{content:" (나)";color:var(--dim);font-size:.8em}
 .namerow{display:flex;flex-direction:column;gap:6px}
 @media (max-width:440px){.board{grid-template-columns:1fr}.count{flex-direction:row;gap:14px}.nums b{font-size:1.1rem}.q{font-size:1.35rem}}
+/* 노트북·데스크톱: 왼쪽 야구장(화면 높이에 맞춤, 고정), 오른쪽 타석 카드 */
+@media (min-width:900px){
+  .wrap{max-width:none;flex-direction:row;justify-content:center;align-items:flex-start;gap:20px}
+  .stage{width:min(680px,calc((100vh - 170px)*5/3));position:sticky;top:20px}
+  .side{width:420px;flex:none}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -86,6 +94,7 @@ button:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
 
 
 <div class="wrap">
+  <div class="stage">
   <div class="board">
     <h1>KBO<span>rillion</span></h1>
     <div class="count">
@@ -100,7 +109,9 @@ button:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
   </div>
 
   <div class="field"><svg id="svg" viewBox="0 0 600 360" role="img" aria-label="타구 분포도"></svg></div>
+  </div>
 
+  <div class="side">
   <section id="start" class="card">
     <p class="q">타석에 들어서세요.</p>
     <ul class="rules">
@@ -145,6 +156,7 @@ button:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
     <ol class="lb" id="lblist"></ol>
     <p class="hint" id="lbnote">리더보드 불러오는 중…</p>
   </section>
+  </div>
 </div>
 
 <script>
