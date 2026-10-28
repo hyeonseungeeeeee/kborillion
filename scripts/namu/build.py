@@ -100,6 +100,47 @@ put("프리미어12에 나간 선수 (국적 무관)", by_cat(r"프리미어 12 
 put("MVP를 받은 선수 (정규시즌·한국시리즈·플레이오프·준플레이오프)", by_cat(r"^KBO (한국시리즈 |플레이오프 |준플레이오프 )?MVP$"), "수상·기록")
 put("이름을 바꾼(개명한) 선수", by_cat(r"^개명한 인물$"), "이름")
 
+# 왼손 투수, 투타 × 포지션 (포지션은 우리 데이터의 위키백과 포지션 문제를 씀)
+lefty = by_cat(r"^좌완 투수$")
+put("왼손 투수", lefty, "포지션")
+POSQ = {"내야수": [f"KBO에서 {x}로 뛴 선수" for x in ("1루수", "2루수", "3루수", "유격수")], "외야수": ["KBO에서 외야수로 뛴 선수"]}
+pos = {k: {i for p in D["prompts"] if p["q"] in qs for i, _ in p["m"]} for k, qs in POSQ.items()}
+put("우투좌타 내야수", by_cat(r"^우투좌타$") & pos["내야수"], "포지션")
+put("우투좌타 외야수", by_cat(r"^우투좌타$") & pos["외야수"], "포지션")
+put("좌투좌타 외야수", by_cat(r"^좌투좌타$") & pos["외야수"], "포지션")
+
+# 시대: 데뷔·은퇴 연대, 연대 × 구단
+def years(i, kind):
+    return [int(m.group(1)) for c in cats[i] for m in [re.match(r"^(\d{4})년 " + kind + "$", c)] if m]
+debut = {a: {i for i in ids if any(a <= y < a + 10 for y in years(i, "데뷔"))} for a in (1980, 1990, 2000, 2010, 2020)}
+for a, s in debut.items():
+    put(f"{a}년대에 데뷔한 선수", s, "시대")
+for a in (1990, 2000, 2010, 2020):
+    put(f"{a}년대에 은퇴한 선수", {i for i in ids if any(a <= y < a + 10 for y in years(i, "은퇴"))}, "시대")
+# 그해 현역(데뷔 연도 ≤ 그해 ≤ 은퇴 연도, 현역이면 2026). 외국인은 분류의 데뷔 연도가 미국·일본 데뷔라 뺌
+foreign = by_cat(r"외국인 선수\(야구\)") | {i for p in D["prompts"] if p["q"] == "KBO 외국인 선수" for i, _ in p["m"]}
+def active(i):
+    d = years(i, "데뷔")
+    e = years(i, "은퇴") or ([2026] if any(re.search(r"/현역", c) for c in cats[i]) else [])
+    return (min(d), max(e)) if d and e else None
+span = {i: active(i) for i in ids if i not in foreign}
+for y in (1982, 1985, 1990, 1995, 2000, 2005, 2010, 2015, 2020, 2025):
+    put(f"{y}년에 현역으로 뛴 한국인 선수" + (" (원년)" if y == 1982 else ""), {i for i, s in span.items() if s and s[0] <= y <= s[1]}, "시대")
+FRN = {"삼성": "삼성", "롯데": "롯데", "LG": "LG(MBC)", "두산": "두산(OB)", "KIA": "KIA(해태)", "한화": "한화(빙그레)",
+       "SK": "SK·SSG", "NC": "NC", "KT": "KT", "히어로즈": "히어로즈", "현대": "현대(삼미~태평양)"}
+for a, s in debut.items():
+    for k, nm in FRN.items():
+        put(f"{a}년대에 데뷔해 {nm}에서 뛴 선수", {i for i in s if k in mine[i]}, "시대")
+for k, nm in FRN.items():
+    put(f"{nm}에서 뛴 왼손 투수", {i for i in lefty if k in mine[i]}, "팀×포지션")
+
+# 2026 시즌 현역 명단 (덤프 기준일 2026-08-29의 '구단/현역' 분류)
+NOW = {"삼성 라이온즈": "삼성 라이온즈", "롯데 자이언츠": "롯데 자이언츠", "LG 트윈스": "LG 트윈스", "두산 베어스": "두산 베어스",
+       "KIA 타이거즈": "KIA 타이거즈", "한화 이글스": "한화 이글스", "SSG 랜더스": "SSG 랜더스", "NC 다이노스": "NC 다이노스",
+       "kt wiz": "KT 위즈", "키움 히어로즈": "키움 히어로즈"}
+for c, nm in NOW.items():
+    put(f"2026 시즌 {nm} 선수 (8월 말 기준)", by_cat("^" + re.escape(c) + "/현역"), "현역")
+
 # ---------- 문제: 명단 문서 ----------
 lists = {}
 for line in open(os.path.join(work, "lists.jsonl"), encoding="utf-8"):

@@ -8,7 +8,8 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="KBOrillion · KBO 퀴즈 홈런더비">
 <meta property="og:description" content="문제에 맞는 선수 이름을 대면 홈런! 뻔하지 않은 정답일수록 멀리 날아가요.">
-<meta property="og:image" content="/og.png">
+<meta property="og:url" content="https://kborillion.netlify.app/">
+<meta property="og:image" content="https://kborillion.netlify.app/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -357,7 +358,7 @@ $("f").addEventListener("submit",ev=>{ev.preventDefault();if(asking)return;
 $("skip").addEventListener("click",()=>out("건너뛰기"));
 function end(){clearInterval(timer);closeAsk();$("play").hidden=true;$("end").hidden=false;
   const tot=homers.reduce((a,h)=>a+h.d,0),nhr=homers.filter(h=>h.d>=95).length;$("final").textContent=tot.toLocaleString();
-  $("lbcard").hidden=false;lastTot=tot;lastRank=0;$("sharenote").textContent="";
+  $("lbcard").hidden=false;lastTot=tot;lastMax=homers.length?Math.max(...homers.map(h=>h.d)):0;lastHr=homers.filter(h=>h.d>=95).length;lastRank=0;$("sharenote").textContent="";
   if(tot>0)saveScore(tot,Math.max(...homers.map(h=>h.d)),nhr);else $("savenote").textContent="비거리가 0m라 기록은 남지 않아요.";
   $("endsum").textContent=homers.length?`홈런 ${nhr}개 · 펜스 직격 ${homers.length-nhr}개 · 최장 ${Math.max(...homers.map(h=>h.d))}m`:"안타가 없었어요.";
   $("endlog").innerHTML=log.map(x=>`<li><span>${esc(x.q)}</span>${x.a?`<span>${esc(x.a)}</span><span class="d">${x.d}m</span>`:`<span class="o">${x.fo?esc(x.fo)+" 뜬공":"아웃"}</span><span class="d">–</span>`}</li>`).join("");}
@@ -379,7 +380,7 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{lbKey=b.data
   document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));renderLB();});
 async function loadLB(){try{const r=await fetch("/api/scores");if(!r.ok)throw 0;LB=await r.json();renderLB();}catch(e){lbNote("리더보드를 불러오지 못했어요.");}}
 loadLB();
-let lastTot=0,lastRank=0; /* 공유 문구용: 이번 경기 총 비거리, 총 비거리 리더보드 순위(못 올랐으면 0) */
+let lastTot=0,lastMax=0,lastHr=0,lastRank=0; /* 공유 문구용: 이번 경기 총 비거리·최고 비거리·홈런 수, 총 비거리 리더보드 순위(못 올랐으면 0) */
 async function saveScore(tot,mx,nhr){
   const note=t=>$("savenote").textContent=t;
   try{const r=await fetch("/api/scores",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({key:MYKEY,name:myName,total:tot,max:mx,hr:nhr})});
@@ -391,8 +392,9 @@ async function saveScore(tot,mx,nhr){
 }
 /* 기록 공유: 휴대폰은 공유 창, 컴퓨터는 문구를 복사 */
 $("share").onclick=async()=>{
-  const name=myName||"익명 타자",m=lastTot.toLocaleString()+"m";
-  const text=(lastRank?`${name}님이 ${m}로 리더보드 ${lastRank}위에 올랐습니다!`:`${name}님이 ${m}를 달성했습니다!`)+"\n크보찐팬 테스트 KBOrillion 나도 플레이하기";
+  const name=myName||"익명 타자",m="총 비거리 "+lastTot.toLocaleString()+"m";
+  const text=(lastRank?`${name}님이 ${m}로 리더보드 ${lastRank}위에 올랐습니다!`:`${name}님이 ${m}를 달성했습니다!`)
+    +`\n⚾ 홈런 ${lastHr}개 · 최고 비거리 ${lastMax}m\n크보찐팬 테스트 KBOrillion 나도 플레이하기`;
   const url=location.origin+"/";
   try{if(navigator.share){await navigator.share({title:"KBOrillion",text,url});return;}}catch(e){if(e.name==="AbortError")return;}
   try{await navigator.clipboard.writeText(text+"\n"+url);$("sharenote").textContent="공유 문구를 복사했어요. 원하는 곳에 붙여 넣으세요.";}
