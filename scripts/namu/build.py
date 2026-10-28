@@ -178,6 +178,9 @@ put("트레이드로 팀을 옮긴 적 있는 선수", trade, "경력")
 
 # 프랜차이즈 스타 문서는 7개 구단에만 있어 빠지는 선수가 많아 문제로 안 씀
 
+hit1000 = link_ids(section(lists.get("KBO 리그/1000안타 달성 선수 목록", ""), "== 개요", "== 달성 가능성이 높은 선수"))
+put("KBO 통산 1000안타를 친 선수", hit1000, "수상·기록")
+
 second = by_cat(r"^야구 선수 자녀$")
 for row in section(lists.get("KBO 리그/야구인 2세", ""), "=== 3대 ===", "=== 삼촌-조카").split("\n"):  # 삼촌-조카·조손은 뺌
     if row.startswith("||"):
