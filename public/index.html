@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>KBOrillion</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=DotGothic16&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
 <style>
 /* Layout: night ballpark. Manual scoreboard on top (count lamps + numbers), top-down spray chart of the field, at-bat card below. Single night look by choice. */
 :root{
@@ -12,7 +12,7 @@
   --dim:#9db3a5; --led:#ffc24a; --strike:#ffd43b; --out:#ff5a4a; --ball:#ffffff; --track:#8a5a3a; --wall:#14432a; --line:rgba(244,241,230,.16);
   --display:"Black Han Sans","IBM Plex Sans KR",system-ui,sans-serif;
   --body:"IBM Plex Sans KR",system-ui,sans-serif;
-  --dot:"DotGothic16",ui-monospace,monospace;
+  --dot:"Do Hyeon","IBM Plex Sans KR",system-ui,sans-serif;
   color-scheme:dark;
 }
 html,body{height:100%}
@@ -115,7 +115,7 @@ button:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
   <section id="start" class="card">
     <p class="q">타석에 들어서세요.</p>
     <ul class="rules">
-      <li>문제에 맞는 KBO 선수를 대면 홈런이에요. 그 문제의 정답으로 뻔하지 않을수록 멀리 날아가요(95~178m). 숨은 크릴리온 정답은 190m 장외홈런이에요.</li>
+      <li>문제에 맞는 KBO 선수를 대면 홈런이에요. 그 문제의 정답으로 뻔하지 않을수록 멀리 날아가요(95~185m). 아무도 생각 못 할 정답이면 180m를 넘겨요.</li>
       <li>꽤 뻔한 정답은 펜스를 맞고 80m. 너무너무 뻔한 정답은 뜬공 아웃이에요.</li>
       <li>틀리면 스트라이크. 한 문제에서 스트라이크 3개면 아웃이에요.</li>
       <li>투구 시계 15초를 넘기거나 건너뛰면 바로 아웃. 3아웃이면 경기 끝이에요.</li>
@@ -179,7 +179,7 @@ async function load(){
       if(!TOK.has(tk))TOK.set(tk,[]);TOK.get(tk).push(i);}});
   for(const l of TOK.values())l.sort((a,b)=>PLAYERS[b].v-PLAYERS[a].v);
   const MIN=60; /* 정답이 이보다 적은 문제는 빼기 */
-  PROMPTS=d.prompts.filter(P=>P.m.length>=MIN).map(P=>({q:P.q,dist:new Map(P.m),gem:P.gem,size:P.m.length}));
+  PROMPTS=d.prompts.filter(P=>P.m.length>=MIN).map(P=>({q:P.q,dist:new Map(P.m),g:P.g||"기타",size:P.m.length}));
   $("go").disabled=false;$("go").textContent="플레이볼";
   $("qcount").textContent=`문제 ${PROMPTS.length}개 · 선수 ${PLAYERS.length.toLocaleString()}명`;
 }
@@ -233,9 +233,8 @@ function drawField(){
   el("polygon",{points:`${HX-5},${HY-4} ${HX+5},${HY-4} ${HX+5},${HY} ${HX},${HY+4} ${HX-5},${HY}`,fill:"var(--chalk)"});
   /* 거리 표시 */
   for(const m of [100,120,140,160,180]){el("path",{d:arc(m,-44,44),fill:"none",stroke:"var(--chalk)","stroke-width":.6,"stroke-dasharray":"2 5",opacity:.3});
-    const [x,y]=pt(m,0);el("text",{x,y:y-4,"text-anchor":"middle","font-size":11,fill:"var(--chalk)",opacity:.75,"font-family":"DotGothic16, monospace"}).textContent=m+"m";}
-  const [fx,fy]=pt(FENCE+1,20);el("text",{x:fx,y:fy-6,"text-anchor":"middle","font-size":11,fill:"var(--led)","font-family":"DotGothic16, monospace"}).textContent="펜스 "+FENCE+"m";
-  const [gx,gy]=pt(188,-30);el("text",{x:gx,y:gy,"text-anchor":"middle","font-size":11,fill:"var(--led)",opacity:.8,"font-family":"DotGothic16, monospace"}).textContent="장외";
+    const [x,y]=pt(m,0);el("text",{x,y:y-4,"text-anchor":"middle","font-size":11,fill:"var(--chalk)",opacity:.75,"font-family":"Do Hyeon, sans-serif"}).textContent=m+"m";}
+  const [fx,fy]=pt(FENCE+1,20);el("text",{x:fx,y:fy-6,"text-anchor":"middle","font-size":11,fill:"var(--led)","font-family":"Do Hyeon, sans-serif"}).textContent="펜스 "+FENCE+"m";
   svg.layer=el("g",{});
 }
 function fly(m){
@@ -255,7 +254,7 @@ function fly(m){
     if(t<T1+T2){const u=(t-T1)/T2,x=tx+(ex-tx)*u,y=ty+(ey-ty)*u;ball.setAttribute("cx",x);ball.setAttribute("cy",y);shadow.setAttribute("cx",x);shadow.setAttribute("cy",y);ball.setAttribute("r",4.5);return requestAnimationFrame(step);}
     shadow.remove();ball.setAttribute("cx",ex);ball.setAttribute("cy",ey);ball.setAttribute("r",4);
     ball.setAttribute("fill",m>=180?"var(--led)":fence||fo?"var(--dim)":"var(--ball)");trail.setAttribute("opacity",.18);trail.setAttribute("x2",tx);trail.setAttribute("y2",ty);
-    const lab=el("text",{x:Math.max(30,Math.min(570,ex)),y:ey-12,"text-anchor":"middle","font-size":13,fill:fo?"var(--out)":"var(--led)","font-family":"DotGothic16, monospace"},svg.layer);
+    const lab=el("text",{x:Math.max(30,Math.min(570,ex)),y:ey-12,"text-anchor":"middle","font-size":13,fill:fo?"var(--out)":"var(--led)","font-family":"Do Hyeon, sans-serif"},svg.layer);
     lab.textContent=fo?"뜬공 아웃":fence?"펜스 80m":m+"m";setTimeout(()=>{lab.remove();if(glove)glove.remove();if(fo){ball.remove();trail.remove();}},1800);
   })(t0);
 }
@@ -264,6 +263,16 @@ function fly(m){
 const $=id=>document.getElementById(id);
 const CLOCK=15,MAXOUT=3;let order,cur,outs,strikes,homers,clock,timer,last,log,asking;
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+/* 문제 순서: 묶음(팀·이름·국가대표 등)을 고르게 돌아가며, 바로 앞과 같은 묶음은 피함 */
+function makeOrder(){
+  const G={};PROMPTS.forEach((P,i)=>(G[P.g]=G[P.g]||[]).push(i));
+  const bag={},keys=Object.keys(G),out=[];let prev=null;
+  for(let n=0;n<PROMPTS.length;n++){
+    const pick=keys.filter(k=>k!==prev||keys.length===1),k=pick[Math.floor(Math.random()*pick.length)];
+    if(!bag[k]||!bag[k].length)bag[k]=shuffle(G[k].slice());
+    out.push(bag[k].pop());prev=k;}
+  return out;
+}
 function lamps(n,max,cls){return Array.from({length:max},(_,i)=>`<span class="lamp ${i<n?cls:""}" style="display:inline-block;margin-right:3px"></span>`).join("");}
 function renderBoard(){
   $("sl").innerHTML=lamps(strikes,2,"s");$("ol").innerHTML=lamps(outs,MAXOUT,"o");
@@ -274,12 +283,12 @@ function renderBoard(){
 function start(){
   myName=($("pname").value.trim()||"익명 타자").slice(0,12);try{localStorage.setItem("kbo_name",myName);}catch(e){}
   $("lbcard").hidden=true;$("savenote").textContent="";track("play");
-  order=shuffle(PROMPTS.map((_,i)=>i));cur=-1;outs=0;homers=[];log=[];
+  order=makeOrder();cur=-1;outs=0;homers=[];log=[];
   drawField();$("start").hidden=true;$("end").hidden=true;$("play").hidden=false;$("msg").textContent="";
   next();clearInterval(timer);last=performance.now();timer=setInterval(tick,100);
 }
 function next(){
-  cur++;if(cur>=order.length)order=order.concat(shuffle(PROMPTS.map((_,i)=>i)));
+  cur++;if(cur>=order.length)order=order.concat(makeOrder());
   const P=PROMPTS[order[cur]];$("q").textContent=P.q;$("qn").textContent=`정답 ${P.size.toLocaleString()}명`;
   strikes=0;clock=CLOCK;closeAsk();$("ans").value="";$("ans").focus();renderBoard();
 }
@@ -297,10 +306,11 @@ function out(why,name){
   if(outs>=MAXOUT)return end();next();
 }
 function hit(i,raw,how){
-  const P=PROMPTS[order[cur]],d=P.dist.get(i),name=PLAYERS[i].n;
+  const P=PROMPTS[order[cur]],name=PLAYERS[i].n;let d=P.dist.get(i);
+  if(d>=180)d=180+Math.floor(Math.random()*6); /* 가장 덜 뻔한 정답: 180~185m 무작위 */
   if(d===0){fly(0);return out(`<b>${esc(name)}</b> 뜬공. 너무너무 뻔한 정답이에요`,name);}
   homers.push({d});log.push({q:P.q,a:name,d,P});fly(d);
-  const what=d>=190?`<span class="hr">장외홈런!</span> 크릴리온 정답`:d<95?"펜스 직격. 꽤 뻔한 정답이에요":`<span class="hr">홈런!</span>`;
+  const what=d>=180?`<span class="hr">초대형 홈런!</span>`:d<95?"펜스 직격. 꽤 뻔한 정답이에요":`<span class="hr">홈런!</span>`;
   const note=how?` <span class="hint" style="display:inline">(‘${esc(raw)}’ → ‘${esc(name)}’${how})</span>`:"";
   $("msg").innerHTML=`<b>${esc(name)}</b> ${what} <b class="hr">${d}m</b>${note}`;
   next();
@@ -331,7 +341,7 @@ function end(){clearInterval(timer);closeAsk();$("play").hidden=true;$("end").hi
   $("lbcard").hidden=false;
   if(tot>0)saveScore(tot,Math.max(...homers.map(h=>h.d)),nhr);else $("savenote").textContent="비거리가 0m라 기록은 남지 않아요.";
   $("endsum").textContent=homers.length?`홈런 ${nhr}개 · 펜스 직격 ${homers.length-nhr}개 · 최장 ${Math.max(...homers.map(h=>h.d))}m`:"안타가 없었어요.";
-  $("endlog").innerHTML=log.map(x=>`<li><span>${esc(x.q)}<br><small>크릴리온 정답: ${esc(PLAYERS[x.P.gem].n)}</small></span>${x.a?`<span>${esc(x.a)}</span><span class="d">${x.d}m</span>`:`<span class="o">${x.fo?esc(x.fo)+" 뜬공":"아웃"}</span><span class="d">–</span>`}</li>`).join("");}
+  $("endlog").innerHTML=log.map(x=>`<li><span>${esc(x.q)}</span>${x.a?`<span>${esc(x.a)}</span><span class="d">${x.d}m</span>`:`<span class="o">${x.fo?esc(x.fo)+" 뜬공":"아웃"}</span><span class="d">–</span>`}</li>`).join("");}
 /* ---------- 리더보드 (Netlify Functions) ---------- */
 let myName="",lbKey="max";let LB={max:[],total:[]};
 const MYKEY=(()=>{try{let k=localStorage.getItem("kbo_key");if(!k){k=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(36).padStart(2,"0")).join("").slice(0,24);localStorage.setItem("kbo_key",k);}return k;}catch(e){return Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);}})();
