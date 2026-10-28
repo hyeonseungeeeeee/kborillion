@@ -186,7 +186,7 @@ async function load(){
 /* 판정: hit / other(정답 아님) / ask(외국인 이름 일부) / miss */
 function judge(P,raw){
   const k=norm(raw);if(!k)return null;
-  if(FULL.has(k)){/* 동명이인: 이 문제에 맞는 사람이 있으면 그중 가장 유명한 선수로 인정 */const l=FULL.get(k),inP=l.filter(i=>P.dist.has(i)).sort((a,b)=>PLAYERS[b].v-PLAYERS[a].v);return inP.length?{hit:inP[0],exact:true}:{other:l[0]};}
+  if(FULL.has(k)){/* 동명이인: 이 문제에 맞는 사람이 있으면 그중 가장 유명한 선수로 인정 */const l=FULL.get(k),inP=l.filter(i=>P.dist.has(i)).sort((a,b)=>(used.has(a)-used.has(b))||PLAYERS[b].v-PLAYERS[a].v);return inP.length?{hit:inP[0],exact:true}:{other:l[0]};}
   if(TOK.has(k)){const c=TOK.get(k);const inP=c.filter(i=>P.dist.has(i)),outP=c.filter(i=>!P.dist.has(i));return{ask:[...inP,...outP].slice(0,3)};}
   const jk=jamo(k);let best=null,bd=9;
   if(jk.length>=4)for(const [i] of P.dist){if(!PLAYERS[i].n.includes(" "))continue; /* 한국 이름은 자동 정정 안 함 */const j=PLAYERS[i].j;const lim=j.length>=10?2:1;const dd=lev(jk,j);if(dd<=lim&&dd<bd){bd=dd;best=i;}}
@@ -261,7 +261,7 @@ function fly(m){
 
 /* ---------- 게임 ---------- */
 const $=id=>document.getElementById(id);
-const CLOCK=15,MAXOUT=3;let order,cur,outs,strikes,homers,clock,timer,last,log,asking;
+const CLOCK=15,MAXOUT=3;let order,cur,outs,strikes,homers,clock,timer,last,log,asking,used=new Set(); /* used: 이번 경기에 이미 정답으로 친 선수 */
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 /* 문제 순서: 묶음(팀·이름·국가대표 등)을 고르게 돌아가며, 바로 앞과 같은 묶음은 피함 */
 function makeOrder(){
@@ -283,7 +283,7 @@ function renderBoard(){
 function start(){
   myName=($("pname").value.trim()||"익명 타자").slice(0,12);try{localStorage.setItem("kbo_name",myName);}catch(e){}
   $("lbcard").hidden=true;$("savenote").textContent="";track("play");
-  order=makeOrder();cur=-1;outs=0;homers=[];log=[];
+  order=makeOrder();cur=-1;outs=0;homers=[];log=[];used=new Set();
   drawField();$("start").hidden=true;$("end").hidden=true;$("play").hidden=false;$("msg").textContent="";
   next();clearInterval(timer);last=performance.now();timer=setInterval(tick,100);
 }
@@ -306,7 +306,9 @@ function out(why,name){
   if(outs>=MAXOUT)return end();next();
 }
 function hit(i,raw,how){
-  const P=PROMPTS[order[cur]],name=PLAYERS[i].n;let d=P.dist.get(i);
+  const P=PROMPTS[order[cur]],name=PLAYERS[i].n;
+  if(used.has(i)){$("msg").innerHTML=`<b>${esc(name)}</b>은(는) 이번 경기에 이미 친 선수예요. 다른 선수를 대 보세요.`;shake();return;}
+  used.add(i);let d=P.dist.get(i);
   if(d>=180)d=180+Math.floor(Math.random()*6); /* 가장 덜 뻔한 정답: 180~185m 무작위 */
   if(d===0){fly(0);return out(`<b>${esc(name)}</b> 뜬공. 너무너무 뻔한 정답이에요`,name);}
   homers.push({d});log.push({q:P.q,a:name,d,P});fly(d);
