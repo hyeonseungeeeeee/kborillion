@@ -8,6 +8,11 @@
 // 2) 기존 문제를 조합한 새 문제 추가(x: 1 표시, 다시 돌리면 지우고 새로 만듦)
 // 3) 비거리: 뻔한 순서대로 2% 뜬공(0) · 6% 펜스(80) · 나머지 홈런 95~179, 가장 덜 뻔한 10%는 180
 //    (180은 게임에서 칠 때마다 180~185m 무작위). 크릴리온 정답(gem)은 없앰
+// 4) data/namu.json(scripts/namu/build.py가 만듦)이 있으면
+//    - '뻔한 정도'를 나무위키 유명도로 다시 매김: 문제 안 유명도 순위 × (팀 문제면 거친 구단 수로 나눈 값)^0.7
+//      → 한 팀에서만 뛴 스타는 그 팀 문제의 뻔한 답, 여러 팀을 거친 스타는 덜 뻔함
+//    - 나무위키 분류·명단 문제를 더함(x: 2)
+//    - 유명도 0.6 이상(대략 상위 40%) 정답이 KNOWN명 미만인 '너무 마이너한' 문제는 h: 1 (게임에 안 나옴)
 import fs from "fs";
 
 const FILE = new URL("../public/kbo_derby.json", import.meta.url);
@@ -16,12 +21,31 @@ const names = d.players.map((p) => p[0]);
 // 위키백과 '○○의 선수 목록', '틀:' 문서가 선수로 잘못 들어온 것은 정답에서 뺌
 const junk = new Set(names.map((n, i) => (/의 (외국인 )?선수 목록$|^틀:/.test(n) ? i : -1)).filter((i) => i >= 0));
 const base = d.prompts.filter((p) => !p.x).map((p) => ({ ...p, m: p.m.filter(([i]) => !junk.has(i)) }));
+const NAMU = new URL("../data/namu.json", import.meta.url);
+const namu = fs.existsSync(NAMU) ? JSON.parse(fs.readFileSync(NAMU, "utf8")) : null;
+const fame = namu ? namu.fame : null;
 
-// 문제별 '뻔한 정도' (0 = 가장 뻔함, 1 = 가장 덜 뻔함). 같은 비거리끼리는 순서 유지
+// 문제별 '뻔한 정도' (0 = 가장 뻔함, 1 = 가장 덜 뻔함). 나무위키가 없으면 지금 비거리 순서를 그대로 씀
 const rankOf = new Map();
+const FRANCHISE = [["삼성 라이온즈"], ["롯데 자이언츠"], ["LG 트윈스", "MBC 청룡"], ["두산 베어스", "OB 베어스"], ["KIA 타이거즈", "해태 타이거즈"],
+  ["한화 이글스", "빙그레 이글스"], ["SK 와이번스", "SSG 랜더스"], ["NC 다이노스"], ["KT 위즈"], ["키움 히어로즈", "넥센 히어로즈"],
+  ["현대 유니콘스", "태평양 돌핀스", "삼미 슈퍼스타즈"], ["쌍방울 레이더스"]];
+const nClub = new Map();
+for (const f of FRANCHISE) {
+  const s = new Set(base.filter((p) => f.some((t) => p.q.startsWith(t))).flatMap((p) => p.m.map(([i]) => i)));
+  for (const i of s) nClub.set(i, (nClub.get(i) || 0) + 1);
+}
+const teamQ = (q) => /삼성|롯데|LG|MBC|두산|OB|KIA|해태|한화|빙그레|SK|SSG|NC|KT|키움|넥센|히어로즈|현대|태평양|삼미|쌍방울/.test(q);
+function obviousOrder(q, ids) {
+  // 유명한 순(뻔한 순)으로 줄 세움. 팀 문제는 여러 구단을 거친 선수를 덜 뻔하게
+  const byFame = [...ids].sort((a, b) => fame[b] - fame[a] || a - b), n = byFame.length;
+  const fp = new Map(byFame.map((i, r) => [i, 1 - r / Math.max(1, n - 1)]));
+  const o = (i) => fp.get(i) * (teamQ(q) ? Math.pow(1 / (nClub.get(i) || 1), 0.7) : 1);
+  return [...ids].sort((a, b) => o(b) - o(a) || a - b);
+}
 for (const p of base) {
-  const ord = p.m.map(([i, m], k) => [i, m, k]).sort((a, b) => a[1] - b[1] || a[2] - b[2]);
-  rankOf.set(p.q, new Map(ord.map(([i], r) => [i, r / Math.max(1, ord.length - 1)])));
+  const ord = fame ? obviousOrder(p.q, p.m.map(([i]) => i)) : p.m.map(([i, m], k) => [i, m, k]).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map(([i]) => i);
+  rankOf.set(p.q, new Map(ord.map((i, r) => [i, r / Math.max(1, ord.length - 1)])));
 }
 const S = (q) => { const r = rankOf.get(q); if (!r) throw new Error("문제 없음: " + q); return new Set(r.keys()); };
 const U = (...a) => new Set(a.flatMap((s) => [...s]));
@@ -81,7 +105,8 @@ const kor = names.map((_, i) => i).filter((i) => !foreign.has(i) && /^[가-힣]{
 const forg = names.map((_, i) => i).filter((i) => foreign.has(i));
 const cho = (c) => Math.floor((c.charCodeAt(0) - 0xac00) / 588), bat = (c) => (c.charCodeAt(0) - 0xac00) % 28;
 // q 안의 {예}는 그 문제에서 가장 유명한 선수 이름으로 바꿈
-const nm = (q, f, pool = kor) => { const s = pool.filter((i) => f(names[i])), top = s.reduce((a, i) => (d.players[i][1] > d.players[a][1] ? i : a), s[0]);
+const pop = (i) => (fame ? fame[i] : d.players[i][1]);
+const nm = (q, f, pool = kor) => { const s = pool.filter((i) => f(names[i])), top = s.reduce((a, i) => (pop(i) > pop(a) ? i : a), s[0]);
   add(q.replace("{예}", names[top]), new Set(s), [ALL], "이름"); };
 for (const ch of "준재성동태승진정원") nm(`이름에 '${ch}'${josa(ch, "이", "가")} 들어간 KBO 선수 (성 제외)`, (n) => n.slice(1).includes(ch));
 for (const ch of "환성") nm(`이름이 '${ch}'${josa(ch, "으로", "로")} 끝나는 KBO 선수`, (n) => n.slice(-1) === ch);
@@ -91,6 +116,12 @@ nm("성 뺀 이름 두 글자의 첫소리가 같은 선수 (예: {예})", (n) =
 const fn = (n) => n.replace(/ /g, "");
 for (const t of ["스", "리", "로", "라"]) nm(`이름에 '${t}'${josa(t, "이", "가")} 들어간 외국인 선수`, (n) => fn(n).includes(t), forg);
 nm("성(마지막 단어)이 '스'로 끝나는 외국인 선수", (n) => n.split(" ").pop().endsWith("스"), forg);
+
+// 나무위키 문제 (부모 없이 유명도 순)
+if (namu) for (const { q, g, ids } of namu.sets) {
+  const set = new Set(ids.filter((i) => !junk.has(i)));
+  if (set.size >= MIN) extra.push({ q, m: distances(obviousOrder(q, set)), g, x: 2 });
+}
 
 // ---------- 묶음(g) ----------
 function group(q) {
@@ -107,7 +138,16 @@ function group(q) {
   return "경력";
 }
 const prompts = [...base.map((p) => ({ q: p.q, m: distances([...rankOf.get(p.q).entries()].sort((a, b) => a[1] - b[1]).map(([i]) => i)), g: group(p.q) })), ...extra];
-fs.writeFileSync(FILE, JSON.stringify({ players: d.players, prompts }));
-const play = prompts.filter((p) => p.m.length >= MIN), cnt = {};
+// 너무 마이너한 문제 거르기: 알 만한 선수(유명도 0.6 이상)가 KNOWN명 미만이면 게임에 안 냄
+const KNOWN = 15, hidden = [];
+if (fame) for (const p of prompts) {
+  const k = p.m.filter(([i]) => fame[i] >= 0.6).length;
+  if (p.m.length >= MIN && k < KNOWN) { p.h = 1; hidden.push(`${p.q} (${k}명)`); }
+}
+const out = { players: d.players, prompts };
+if (fame) out.fame = fame;
+fs.writeFileSync(FILE, JSON.stringify(out));
+const play = prompts.filter((p) => p.m.length >= MIN && !p.h), cnt = {};
 for (const p of play) cnt[p.g] = (cnt[p.g] || 0) + 1;
 console.log(`문제 ${prompts.length}개 (새로 ${extra.length}개) · 게임에 나오는 문제 ${play.length}개`, cnt);
+if (hidden.length) console.log(`마이너해서 뺀 문제 ${hidden.length}개:\n  ` + hidden.join("\n  "));
