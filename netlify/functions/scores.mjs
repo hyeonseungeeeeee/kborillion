@@ -1,10 +1,10 @@
 // 크보릴리온 홈런더비 리더보드 API
-// GET  /api/scores           → 최고 비거리·총 비거리 상위 10명
+// GET  /api/scores           → 최고 비거리·총 비거리 상위 20명
 // POST /api/scores {key,name,total,max,hr} → 개인 최고 기록 갱신
 import { getStore } from "@netlify/blobs";
 
-const MAX_DIST = 190;          // 한 타구 최대 비거리
-const MAX_TOTAL = 190 * 300;   // 상식적인 총 비거리 상한
+const MAX_DIST = 185;          // 한 타구 최대 비거리
+const MAX_TOTAL = 185 * 300;   // 상식적인 총 비거리 상한
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } });
 
@@ -13,7 +13,7 @@ async function loadBoard(store) {
 }
 function top(board) {
   const rows = Object.entries(board).map(([key, r]) => ({ key, ...r }));
-  const pick = (k) => rows.filter((r) => r[k] > 0).sort((a, b) => b[k] - a[k] || a.at - b.at).slice(0, 10)
+  const pick = (k) => rows.filter((r) => r[k] > 0).sort((a, b) => b[k] - a[k] || a.at - b.at).slice(0, 20)
     .map(({ key, name, total, max, hr }) => ({ id: key.slice(0, 8), name, total, max, hr }));
   return { max: pick("max"), total: pick("total") };
 }
