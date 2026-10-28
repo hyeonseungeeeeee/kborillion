@@ -18,6 +18,8 @@ KBO 선수 이름으로 치는 홈런더비예요. 문제에 맞는 선수를 �
 | `public/index.html` | 게임 화면 |
 | `public/kbo_derby.json` | 선수 3,380명과 문제 데이터 (게임에는 정답 60명 이상인 문제만 나옴) |
 | `netlify/functions/scores.mjs` | 리더보드 API (`/api/scores`), Netlify Blobs에 저장 |
+| `netlify/functions/stats.mjs` | 방문·플레이 집계 API (`/api/stats`) |
+| `public/stats.html` | 통계 확인 페이지 (`/stats.html`, 검색엔진 제외) |
 | `scripts/build_data.js` | 위키백과에서 데이터를 다시 만드는 스크립트 |
 
 ## 배포 (Netlify)

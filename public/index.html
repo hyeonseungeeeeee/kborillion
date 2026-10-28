@@ -243,7 +243,7 @@ function renderBoard(){
 }
 function start(){
   myName=($("pname").value.trim()||"익명 타자").slice(0,12);try{localStorage.setItem("kbo_name",myName);}catch(e){}
-  $("lbcard").hidden=true;$("savenote").textContent="";
+  $("lbcard").hidden=true;$("savenote").textContent="";track("play");
   order=shuffle(PROMPTS.map((_,i)=>i));cur=-1;outs=0;homers=[];log=[];
   drawField();$("start").hidden=true;$("end").hidden=true;$("play").hidden=false;$("msg").textContent="";
   next();clearInterval(timer);last=performance.now();timer=setInterval(tick,100);
@@ -305,6 +305,8 @@ function end(){clearInterval(timer);closeAsk();$("play").hidden=true;$("end").hi
 let myName="",lbKey="max";let LB={max:[],total:[]};
 const MYKEY=(()=>{try{let k=localStorage.getItem("kbo_key");if(!k){k=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(36).padStart(2,"0")).join("").slice(0,24);localStorage.setItem("kbo_key",k);}return k;}catch(e){return Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);}})();
 const MYID=MYKEY.slice(0,8);
+function track(type){try{fetch("/api/stats",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({key:MYKEY,type}),keepalive:true}).catch(()=>{});}catch(e){}}
+track("visit");
 function lbNote(t){$("lbnote").textContent=t;}
 function renderLB(){
   const rows=LB[lbKey]||[];$("lblist").innerHTML="";
