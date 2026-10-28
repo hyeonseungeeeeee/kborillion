@@ -12,7 +12,7 @@
 //    - '뻔한 정도'를 나무위키 유명도로 다시 매김: 문제 안 유명도 순위 × (팀 문제면 거친 구단 수로 나눈 값)^0.7
 //      → 한 팀에서만 뛴 스타는 그 팀 문제의 뻔한 답, 여러 팀을 거친 스타는 덜 뻔함
 //    - 나무위키 분류·명단 문제를 더함(x: 2)
-//    - 유명도 0.6 이상(대략 상위 40%) 정답이 KNOWN명 미만인 '너무 마이너한' 문제는 h: 1 (게임에 안 나옴)
+//    - 유명도 0.8 이상(대략 상위 20%) 정답이 KNOWN명 미만인 '너무 마이너한' 문제는 h: 1 (게임에 안 나옴)
 import fs from "fs";
 
 const FILE = new URL("../public/kbo_derby.json", import.meta.url);
@@ -138,10 +138,10 @@ function group(q) {
   return "경력";
 }
 const prompts = [...base.map((p) => ({ q: p.q, m: distances([...rankOf.get(p.q).entries()].sort((a, b) => a[1] - b[1]).map(([i]) => i)), g: group(p.q) })), ...extra];
-// 너무 마이너한 문제 거르기: 알 만한 선수(유명도 0.6 이상)가 KNOWN명 미만이면 게임에 안 냄
-const KNOWN = 15, hidden = [];
+// 너무 마이너한 문제 거르기: 알 만한 선수(유명도 0.8 이상)가 KNOWN명 미만이면 게임에 안 냄
+const KNOWN = 10, hidden = [];
 if (fame) for (const p of prompts) {
-  const k = p.m.filter(([i]) => fame[i] >= 0.6).length;
+  const k = p.m.filter(([i]) => fame[i] >= 0.8).length;
   if (p.m.length >= MIN && k < KNOWN) { p.h = 1; hidden.push(`${p.q} (${k}명)`); }
 }
 const out = { players: d.players, prompts };

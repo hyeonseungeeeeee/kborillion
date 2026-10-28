@@ -86,17 +86,17 @@ def by_cat(pat):
 S, G = {}, {}
 def put(q, s, g):
     S[q], G[q] = s, g
-put("좌투좌타 선수", by_cat(r"^좌투좌타$"), "투타·유형")
-put("우투좌타 선수 (오른손으로 던지고 왼쪽 타석에 서는)", by_cat(r"^우투좌타$"), "투타·유형")
-put("사이드암·언더핸드 투수", by_cat(r"^(우사|좌사|우언|좌언)|사이드암 투수|언더핸드 투수"), "투타·유형")
+put("좌투좌타 선수", by_cat(r"^좌투좌타$"), "포지션")
+put("우투좌타 선수 (오른손으로 던지고 왼쪽 타석에 서는)", by_cat(r"^우투좌타$"), "포지션")
+put("사이드암·언더핸드 투수", by_cat(r"^(우사|좌사|우언|좌언)|사이드암 투수|언더핸드 투수"), "포지션")
 put("감독을 지낸 선수 (프로·아마추어 포함)", by_cat(r"야구 감독|감독 대행/야구|/역대 감독"), "은퇴 후")
 put("코치를 지낸 선수", by_cat(r"야구 코치"), "은퇴 후")
 put("야구 해설위원을 지낸 선수", by_cat(r"야구 해설자"), "은퇴 후")
-put("상무에서 뛴 선수", by_cat(r"^상무 피닉스 야구단/"), "군·병역")
-put("경찰 야구단에서 뛴 선수", by_cat(r"^경찰 야구단/"), "군·병역")
-put("병역특례를 받은 선수 (아시안게임·올림픽 등)", by_cat(r"병역특례자/야구"), "군·병역")
+put("상무에서 뛴 선수", by_cat(r"^상무 피닉스 야구단/"), "경력")
+put("경찰 야구단에서 뛴 선수", by_cat(r"^경찰 야구단/"), "경력")
+put("병역특례를 받은 선수 (아시안게임·올림픽 등)", by_cat(r"병역특례자/야구"), "경력")
 put("아시안게임 메달을 딴 선수", by_cat(r"아시안 게임 메달리스트"), "국가대표")
-put("프리미어12에 나간 선수", by_cat(r"프리미어 12 참가"), "국가대표")
+put("프리미어12에 나간 선수 (국적 무관)", by_cat(r"프리미어 12 참가"), "국가대표")
 put("MVP를 받은 선수 (정규시즌·한국시리즈·플레이오프·준플레이오프)", by_cat(r"^KBO (한국시리즈 |플레이오프 |준플레이오프 )?MVP$"), "수상·기록")
 put("이름을 바꾼(개명한) 선수", by_cat(r"^개명한 인물$"), "이름")
 
@@ -115,36 +115,34 @@ def section(text, start, end):
 tv = set()
 tv |= link_ids(re.sub(r"=== 중계·해설진 ===.*?(?==== )", "", section(lists.get("최강 몬스터즈", ""), "== 선수단 ==", "== 선수단 배번"), flags=re.S))
 tv |= link_ids(section(lists.get("불꽃 파이터즈", ""), "== 선수단 ==", "== 역대 전적"))
-tv |= by_cat(r"인터넷 밈|방송인|유튜버|야구 해설자")
-put("은퇴 후 해설·예능·유튜브로 활약한 선수 (최강야구·불꽃야구 포함)", tv, "은퇴 후")
+tv |= by_cat(r"방송인|유튜버|야구 해설자")  # '인터넷 밈'은 현역도 많아 뺌
+put("해설·예능·유튜브로 방송에 나선 선수 (최강야구·불꽃야구 포함)", tv, "은퇴 후")
 
-fa = set()
+fa = set()  # 나무위키에 연도별 문서가 있는 2017~2026년만(그 뒤는 예정 명단)
 for t, tx in lists.items():
-    if t.startswith("KBO 리그/역대 FA"):
+    m = re.match(r"^KBO 리그/역대 FA/(\d{4})$", t)
+    if m and 2017 <= int(m.group(1)) <= 2026:
         for row in tx.split("\n"):
             if row.startswith("||") and "신청" in row and "미신청" not in row:
                 fa |= link_ids(row)
-put("FA를 신청한 적 있는 선수", fa, "경력")
+put("2017~2026년 FA를 신청한 선수", fa, "경력")
 
-trade = set()
+trade = set()  # 트레이드마다 붙은 제목 '=== [[A]] ↔ [[B]] ===' 에 나오는 선수만(본문 언급은 뺌)
 for t, tx in lists.items():
-    if re.match(r"^[^/]+/(역대 )?트레이드", t):
-        trade |= link_ids(tx)
+    if t.startswith("KBO 리그/역대 트레이드/"):
+        for h in re.findall(r"^=+ (.+?) =+$", tx, re.M):
+            if "↔" in h:
+                trade |= link_ids(h)
 put("트레이드로 팀을 옮긴 적 있는 선수", trade, "경력")
 
-fr_star = set()
-for t, tx in lists.items():
-    if t.endswith("/프랜차이즈 스타"):
-        for h in re.findall(r"^=+ (.+?) =+$", tx, re.M):
-            fr_star |= link_ids(h)
-put("구단의 프랜차이즈 스타로 꼽히는 선수", fr_star, "경력")
+# 프랜차이즈 스타 문서는 7개 구단에만 있어 빠지는 선수가 많아 문제로 안 씀
 
 second = by_cat(r"^야구 선수 자녀$")
 for row in section(lists.get("KBO 리그/야구인 2세", ""), "=== 3대 ===", "=== 삼촌-조카").split("\n"):  # 삼촌-조카·조손은 뺌
     if row.startswith("||"):
         cells = row.split("||")[2:]  # 첫 칸(부모 세대)은 뺌
         second |= link_ids("||".join(cells))
-put("아버지도 야구 선수였던 선수 (야구인 2세)", second, "가족")
+put("아버지도 야구 선수였던 선수 (야구인 2세)", second, "경력")
 
 os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
 out = {"source": "나무위키 2026-08-29 덤프(CC BY-NC-SA 2.0 KR) https://huggingface.co/datasets/iamtalker/yourwiki-namumark-20260829",

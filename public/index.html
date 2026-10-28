@@ -269,12 +269,13 @@ function fly(m){
 const $=id=>document.getElementById(id);
 const CLOCK=15,MAXOUT=3;let order,cur,outs,strikes,homers,clock,timer,last,log,asking,used=new Set(); /* used: 이번 경기에 이미 정답으로 친 선수 */
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-/* 문제 순서: 묶음(팀·이름·국가대표 등)을 고르게 돌아가며, 바로 앞과 같은 묶음은 피함 */
+/* 문제 순서: 묶음(팀·이름·국가대표 등)을 돌아가며 냄. 묶음은 문제 수의 제곱근에 비례해 뽑고, 바로 앞과 같은 묶음은 피함 */
 function makeOrder(){
   const G={};PROMPTS.forEach((P,i)=>(G[P.g]=G[P.g]||[]).push(i));
   const bag={},keys=Object.keys(G),out=[];let prev=null;
   for(let n=0;n<PROMPTS.length;n++){
-    const pick=keys.filter(k=>k!==prev||keys.length===1),k=pick[Math.floor(Math.random()*pick.length)];
+    const pick=keys.filter(k=>k!==prev||keys.length===1),w=pick.map(k=>Math.sqrt(G[k].length));
+    let r=Math.random()*w.reduce((a,b)=>a+b,0),j=0;while(r>w[j]&&j<pick.length-1)r-=w[j++];const k=pick[j];
     if(!bag[k]||!bag[k].length)bag[k]=shuffle(G[k].slice());
     out.push(bag[k].pop());prev=k;}
   return out;
