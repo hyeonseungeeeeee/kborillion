@@ -183,6 +183,7 @@ function judge(P,raw){
 
 /* ---------- 타구 분포도 (위에서 본 야구장) ---------- */
 const NS="http://www.w3.org/2000/svg",HX=300,HY=345,S=1.72; /* 1m = 1.72px */
+const FENCE=90; /* 펜스 거리. 가장 짧은 홈런(95m)도 펜스를 넘어가도록 */
 const svg=document.getElementById("svg");
 function el(tag,a,p){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;}
 const pt=(m,deg)=>{const r=m*S,t=(deg-90)*Math.PI/180;return[HX+r*Math.cos(t),HY+r*Math.sin(t)];};
@@ -198,18 +199,18 @@ function drawField(){
   sector(196,"#16301f");sector(150,"#1a3a26");
   const crowd=el("g",{opacity:.55}),cols=["#c9d6cc","#e8b04a","#d0574b","#5d8fd6","#e9e2cf"];
   let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-  for(let n=0;n<420;n++){const m=110+rnd()*84,d=-44+rnd()*88;if(m>148&&m<153)continue;const [x,y]=pt(m,d);
+  for(let n=0;n<420;n++){const m=FENCE+6+rnd()*(188-FENCE),d=-44+rnd()*88;if(m>148&&m<153)continue;const [x,y]=pt(m,d);
     el("circle",{cx:x.toFixed(1),cy:y.toFixed(1),r:(.9+rnd()*.9).toFixed(1),fill:cols[Math.floor(rnd()*cols.length)]},crowd);}
   el("path",{d:arc(150),fill:"none",stroke:"#0d1f15","stroke-width":3});
   /* 조명탑 */
   for(const [m,d] of [[192,-47],[176,-25],[176,25],[192,47]]){const [x,y]=pt(m,d);
     el("circle",{cx:x,cy:y,r:34,fill:"url(#glow)"});el("rect",{x:x-6,y:y-3,width:12,height:6,rx:1,fill:"#fff6d8"});}
   /* 외야 잔디 줄무늬 */
-  for(let m=104;m>0;m-=8)sector(m,(m/8)%2<1?"var(--grass)":"var(--grass-2)");
+  for(let m=FENCE-2;m>0;m-=8)sector(m,(m/8)%2<1?"var(--grass)":"var(--grass-2)");
   /* 워닝트랙 · 펜스 */
-  el("path",{d:arc(101),fill:"none",stroke:"var(--track)","stroke-width":9});
-  el("path",{d:arc(104.5),fill:"none",stroke:"var(--wall)","stroke-width":5});
-  el("path",{d:arc(105.8),fill:"none",stroke:"var(--led)","stroke-width":1.2,opacity:.8});
+  el("path",{d:arc(FENCE-3.5),fill:"none",stroke:"var(--track)","stroke-width":9});
+  el("path",{d:arc(FENCE),fill:"none",stroke:"var(--wall)","stroke-width":5});
+  el("path",{d:arc(FENCE+1.3),fill:"none",stroke:"var(--led)","stroke-width":1.2,opacity:.8});
   /* 내야 */
   el("path",{d:`M${HX},${HY} L${pt(38,-45).join(",")} A${38*S},${38*S} 0 0 1 ${pt(38,45).join(",")} Z`,fill:"var(--dirt)"});
   const b=27.4*S/Math.SQRT2;
@@ -219,14 +220,14 @@ function drawField(){
   for(const d of [-45,45])el("line",{x1:HX,y1:HY,x2:pt(196,d)[0],y2:pt(196,d)[1],stroke:"var(--chalk)","stroke-width":1.4,opacity:.85});
   el("polygon",{points:`${HX-5},${HY-4} ${HX+5},${HY-4} ${HX+5},${HY} ${HX},${HY+4} ${HX-5},${HY}`,fill:"var(--chalk)"});
   /* 거리 표시 */
-  for(const m of [120,140,160,180]){el("path",{d:arc(m,-44,44),fill:"none",stroke:"var(--chalk)","stroke-width":.6,"stroke-dasharray":"2 5",opacity:.3});
+  for(const m of [100,120,140,160,180]){el("path",{d:arc(m,-44,44),fill:"none",stroke:"var(--chalk)","stroke-width":.6,"stroke-dasharray":"2 5",opacity:.3});
     const [x,y]=pt(m,0);el("text",{x,y:y-4,"text-anchor":"middle","font-size":11,fill:"var(--chalk)",opacity:.75,"font-family":"DotGothic16, monospace"}).textContent=m+"m";}
-  const [fx,fy]=pt(105,0);el("text",{x:fx,y:fy-6,"text-anchor":"middle","font-size":11,fill:"var(--led)","font-family":"DotGothic16, monospace"}).textContent="100m";
+  const [fx,fy]=pt(FENCE+1,20);el("text",{x:fx,y:fy-6,"text-anchor":"middle","font-size":11,fill:"var(--led)","font-family":"DotGothic16, monospace"}).textContent="펜스 "+FENCE+"m";
   const [gx,gy]=pt(188,-30);el("text",{x:gx,y:gy,"text-anchor":"middle","font-size":11,fill:"var(--led)",opacity:.8,"font-family":"DotGothic16, monospace"}).textContent="장외";
   svg.layer=el("g",{});
 }
 function fly(m){
-  const fo=m===0,fence=m===80,deg=(Math.random()*76-38),target=fo?62+Math.random()*16:fence?101:m,[tx,ty]=pt(target,deg),[ex,ey]=fence?pt(80,deg+(Math.random()*6-3)):[tx,ty];
+  const fo=m===0,fence=m===80,deg=(Math.random()*76-38),target=fo?62+Math.random()*16:fence?FENCE-3:m,[tx,ty]=pt(target,deg),[ex,ey]=fence?pt(80,deg+(Math.random()*6-3)):[tx,ty];
   const trail=el("line",{x1:HX,y1:HY,x2:HX,y2:HY,stroke:"var(--ball)","stroke-width":1.5,"stroke-dasharray":"3 4",opacity:.7},svg.layer);
   const shadow=el("circle",{cx:HX,cy:HY,r:3,fill:"#000",opacity:.35},svg.layer);
   const ball=el("circle",{cx:HX,cy:HY,r:4.5,fill:"var(--ball)"},svg.layer);
