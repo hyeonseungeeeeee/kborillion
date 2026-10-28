@@ -14,7 +14,8 @@ KBO 선수 이름으로 치는 홈런더비 퀴즈 게임. krillion.io("드문 �
     (묶음 문제 수의 제곱근에 비례한 확률, 바로 앞과 같은 묶음은 피함)
   - `x: 1` = `scripts/remix_data.mjs`가 기존 문제를 조합해 만든 문제, `x: 2` = 나무위키 분류·명단 문제(`data/namu.json`)
   - 선수는 위키백과 문서 단위. 동명이인은 이름이 같은 별도 항목(예: 김광현 2명)
-- `netlify/functions/scores.mjs` — 리더보드 API `/api/scores` (Netlify Blobs `leaderboard` 스토어, 키 `board`)
+- `netlify/functions/scores.mjs` — 리더보드 API `/api/scores` (Netlify Blobs `leaderboard` 스토어, 키 `board2`.
+  2026-10-28 규칙 변경 때 초기화. 옛 기록은 키 `board`에 남아 있음)
 - `netlify/functions/stats.mjs` — 방문·플레이 집계 `/api/stats`, 확인 페이지는 `public/stats.html`
 - `scripts/build_data.js` — 위키백과에서 데이터를 다시 만드는 브라우저 콘솔 스크립트
 - `scripts/remix_data.mjs` — 지금 데이터로 조합 문제 추가·비거리 재계산·묶음 표시(`node scripts/remix_data.mjs`, 위키 접속 불필요).

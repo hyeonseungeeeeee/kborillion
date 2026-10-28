@@ -3,13 +3,15 @@
 // POST /api/scores {key,name,total,max,hr} → 개인 최고 기록 갱신
 import { getStore } from "@netlify/blobs";
 
+// 리더보드 저장 칸. 2026-10-28 새 규칙(최대 185m)으로 바꾸며 "board" → "board2"로 새로 시작(옛 기록은 "board"에 그대로 남아 있음)
+const BOARD = "board2";
 const MAX_DIST = 185;          // 한 타구 최대 비거리
 const MAX_TOTAL = 185 * 300;   // 상식적인 총 비거리 상한
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } });
 
 async function loadBoard(store) {
-  return (await store.get("board", { type: "json" })) || {};
+  return (await store.get(BOARD, { type: "json" })) || {};
 }
 function top(board) {
   const rows = Object.entries(board).map(([key, r]) => ({ key, ...r }));
@@ -36,7 +38,7 @@ export default async (req) => {
   const prev = board[key] || { total: 0, max: 0, hr: 0 };
   const rec = { name, total: Math.max(total, prev.total), max: Math.max(max, prev.max), hr: Math.max(hr, prev.hr), at: Date.now() };
   const newT = total > prev.total, newM = max > prev.max;
-  if (newT || newM || prev.name !== name) { board[key] = rec; await store.setJSON("board", board); }
+  if (newT || newM || prev.name !== name) { board[key] = rec; await store.setJSON(BOARD, board); }
   return json({ newTotal: newT, newMax: newM, board: top(board) });
 };
 
