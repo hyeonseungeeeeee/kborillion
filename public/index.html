@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>KBOrillion</title>
+<meta name="description" content="크보찐팬 테스트. KBO 선수 이름으로 치는 홈런더비, 뻔하지 않은 정답일수록 멀리 날아가요.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="KBOrillion · 크보찐팬 테스트">
+<meta property="og:description" content="KBO 선수 이름으로 치는 홈런더비. 뻔하지 않은 정답일수록 멀리 날아가요.">
+<meta property="og:image" content="/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
 <style>
 /* Layout: night ballpark. Manual scoreboard on top (count lamps + numbers), top-down spray chart of the field, at-bat card below. Single night look by choice. */
@@ -80,6 +88,7 @@ button:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
 .lb li.me{background:rgba(255,194,74,.1)}
 .lb li.me .n::after{content:" (나)";color:var(--dim);font-size:.8em}
 .namerow{display:flex;flex-direction:column;gap:6px}
+.endbtns{display:flex;gap:8px;flex-wrap:wrap}
 @media (max-width:440px){.board{grid-template-columns:1fr}.count{flex-direction:row;gap:14px}.nums b{font-size:1.1rem}.q{font-size:1.35rem}}
 /* 노트북·데스크톱: 왼쪽 야구장(화면 높이에 맞춤, 고정), 오른쪽 타석 카드 */
 @media (min-width:900px){
@@ -148,7 +157,8 @@ footer a{color:inherit}
     <p class="hint" id="endsum"></p>
     <ul class="log" id="endlog"></ul>
     <p class="hint" id="savenote"></p>
-    <div><button id="again">다시 타석에</button></div>
+    <div class="endbtns"><button id="again">다시 타석에</button><button class="ghost" id="share" type="button">기록 공유하기</button></div>
+    <p class="hint" id="sharenote"></p>
   </section>
 
   <section id="lbcard" class="card">
@@ -347,7 +357,7 @@ $("f").addEventListener("submit",ev=>{ev.preventDefault();if(asking)return;
 $("skip").addEventListener("click",()=>out("건너뛰기"));
 function end(){clearInterval(timer);closeAsk();$("play").hidden=true;$("end").hidden=false;
   const tot=homers.reduce((a,h)=>a+h.d,0),nhr=homers.filter(h=>h.d>=95).length;$("final").textContent=tot.toLocaleString();
-  $("lbcard").hidden=false;
+  $("lbcard").hidden=false;lastTot=tot;lastRank=0;$("sharenote").textContent="";
   if(tot>0)saveScore(tot,Math.max(...homers.map(h=>h.d)),nhr);else $("savenote").textContent="비거리가 0m라 기록은 남지 않아요.";
   $("endsum").textContent=homers.length?`홈런 ${nhr}개 · 펜스 직격 ${homers.length-nhr}개 · 최장 ${Math.max(...homers.map(h=>h.d))}m`:"안타가 없었어요.";
   $("endlog").innerHTML=log.map(x=>`<li><span>${esc(x.q)}</span>${x.a?`<span>${esc(x.a)}</span><span class="d">${x.d}m</span>`:`<span class="o">${x.fo?esc(x.fo)+" 뜬공":"아웃"}</span><span class="d">–</span>`}</li>`).join("");}
@@ -369,14 +379,25 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{lbKey=b.data
   document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));renderLB();});
 async function loadLB(){try{const r=await fetch("/api/scores");if(!r.ok)throw 0;LB=await r.json();renderLB();}catch(e){lbNote("리더보드를 불러오지 못했어요.");}}
 loadLB();
+let lastTot=0,lastRank=0; /* 공유 문구용: 이번 경기 총 비거리, 총 비거리 리더보드 순위(못 올랐으면 0) */
 async function saveScore(tot,mx,nhr){
   const note=t=>$("savenote").textContent=t;
   try{const r=await fetch("/api/scores",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({key:MYKEY,name:myName,total:tot,max:mx,hr:nhr})});
     const d=await r.json();if(!r.ok)return note(d.error||"기록을 저장하지 못했어요.");
     LB=d.board;renderLB();
+    if(d.newTotal){const r=(LB.total||[]).findIndex(x=>x.id===MYID);if(r>=0)lastRank=r+1;}
     note(d.newTotal&&d.newMax?"개인 최고 기록 경신! 총 비거리와 최고 비거리 모두 저장했어요.":d.newTotal?"총 비거리 개인 최고 기록을 저장했어요.":d.newMax?"최고 비거리 개인 기록을 저장했어요.":"개인 최고 기록은 그대로예요.");
   }catch(e){note("기록을 저장하지 못했어요.");}
 }
+/* 기록 공유: 휴대폰은 공유 창, 컴퓨터는 문구를 복사 */
+$("share").onclick=async()=>{
+  const name=myName||"익명 타자",m=lastTot.toLocaleString()+"m";
+  const text=(lastRank?`${name}님이 ${m}로 리더보드 ${lastRank}위에 올랐습니다!`:`${name}님이 ${m}를 달성했습니다!`)+"\n크보찐팬 테스트 KBOrillion 나도 플레이하기";
+  const url=location.origin+"/";
+  try{if(navigator.share){await navigator.share({title:"KBOrillion",text,url});return;}}catch(e){if(e.name==="AbortError")return;}
+  try{await navigator.clipboard.writeText(text+"\n"+url);$("sharenote").textContent="공유 문구를 복사했어요. 원하는 곳에 붙여 넣으세요.";}
+  catch(e){$("sharenote").textContent=text+" "+url;}
+};
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 outs=0;strikes=0;homers=[];drawField();renderBoard();
 try{const n=localStorage.getItem("kbo_name");if(n)$("pname").value=n;}catch(e){}
