@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>크보릴리온 홈런더비</title>
+<title>KBOrillion</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=DotGothic16&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
 <style>
 /* Layout: night ballpark. Manual scoreboard on top (count lamps + numbers), top-down spray chart of the field, at-bat card below. Single night look by choice. */
@@ -87,7 +87,7 @@ button:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
 
 <div class="wrap">
   <div class="board">
-    <h1>크보릴리온 <span>홈런더비</span></h1>
+    <h1>KBO<span>rillion</span></h1>
     <div class="count">
       <div><b>S</b><span id="sl"></span></div>
       <div><b>O</b><span id="ol"></span></div>
@@ -104,8 +104,8 @@ button:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
   <section id="start" class="card">
     <p class="q">타석에 들어서세요.</p>
     <ul class="rules">
-      <li>문제에 맞는 KBO 선수를 대면 홈런이에요. 그 문제의 정답으로 뻔하지 않을수록 멀리 날아가요(100~155m). 숨은 크릴리온 정답은 165m 장외홈런이에요.</li>
-      <li>누구나 떠올릴 뻔한 정답은 펜스를 맞고 80m에 그쳐요.</li>
+      <li>문제에 맞는 KBO 선수를 대면 홈런이에요. 그 문제의 정답으로 뻔하지 않을수록 멀리 날아가요(95~178m). 숨은 크릴리온 정답은 190m 장외홈런이에요.</li>
+      <li>꽤 뻔한 정답은 펜스를 맞고 80m. 너무너무 뻔한 정답은 뜬공 아웃이에요.</li>
       <li>틀리면 스트라이크. 한 문제에서 스트라이크 3개면 아웃이에요.</li>
       <li>투구 시계 15초를 넘기거나 건너뛰면 바로 아웃. 3아웃이면 경기 끝이에요.</li>
       <li>외국인 선수는 성이나 이름만 쳐도 돼요. 누구인지 확인해 드려요.</li>
@@ -189,44 +189,61 @@ const pt=(m,deg)=>{const r=m*S,t=(deg-90)*Math.PI/180;return[HX+r*Math.cos(t),HY
 function arc(m,a0=-45,a1=45){const [x0,y0]=pt(m,a0),[x1,y1]=pt(m,a1),r=m*S;return `M${x0},${y0} A${r},${r} 0 0 1 ${x1},${y1}`;}
 function drawField(){
   svg.innerHTML="";
-  el("rect",{x:0,y:0,width:600,height:360,fill:"#0d1f15"});
-  /* 관중석 */
-  el("path",{d:`M${HX},${HY} L${pt(175,-45).join(",")} A${175*S},${175*S} 0 0 1 ${pt(175,45).join(",")} Z`,fill:"#132a1d"});
+  const defs=el("defs",{});
+  defs.innerHTML=`<radialGradient id="sky" cx="50%" cy="0%" r="90%"><stop offset="0" stop-color="#21402e"/><stop offset="1" stop-color="#0a160f"/></radialGradient>
+    <radialGradient id="glow"><stop offset="0" stop-color="#fff6d8" stop-opacity=".95"/><stop offset=".35" stop-color="#ffe7a0" stop-opacity=".35"/><stop offset="1" stop-color="#ffe7a0" stop-opacity="0"/></radialGradient>`;
+  el("rect",{x:0,y:0,width:600,height:360,fill:"url(#sky)"});
+  /* 관중석 (2층) + 관중 */
+  const sector=(m,fill)=>el("path",{d:`M${HX},${HY} L${pt(m,-45).join(",")} A${m*S},${m*S} 0 0 1 ${pt(m,45).join(",")} Z`,fill});
+  sector(196,"#16301f");sector(150,"#1a3a26");
+  const crowd=el("g",{opacity:.55}),cols=["#c9d6cc","#e8b04a","#d0574b","#5d8fd6","#e9e2cf"];
+  let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  for(let n=0;n<420;n++){const m=110+rnd()*84,d=-44+rnd()*88;if(m>148&&m<153)continue;const [x,y]=pt(m,d);
+    el("circle",{cx:x.toFixed(1),cy:y.toFixed(1),r:(.9+rnd()*.9).toFixed(1),fill:cols[Math.floor(rnd()*cols.length)]},crowd);}
+  el("path",{d:arc(150),fill:"none",stroke:"#0d1f15","stroke-width":3});
+  /* 조명탑 */
+  for(const [m,d] of [[192,-47],[176,-25],[176,25],[192,47]]){const [x,y]=pt(m,d);
+    el("circle",{cx:x,cy:y,r:34,fill:"url(#glow)"});el("rect",{x:x-6,y:y-3,width:12,height:6,rx:1,fill:"#fff6d8"});}
   /* 외야 잔디 줄무늬 */
-  for(let m=104;m>0;m-=8)el("path",{d:`M${HX},${HY} L${pt(m,-45).join(",")} A${m*S},${m*S} 0 0 1 ${pt(m,45).join(",")} Z`,fill:(m/8)%2<1?"var(--grass)":"var(--grass-2)"});
-  /* 워닝트랙 */
+  for(let m=104;m>0;m-=8)sector(m,(m/8)%2<1?"var(--grass)":"var(--grass-2)");
+  /* 워닝트랙 · 펜스 */
   el("path",{d:arc(101),fill:"none",stroke:"var(--track)","stroke-width":9});
-  /* 펜스 */
   el("path",{d:arc(104.5),fill:"none",stroke:"var(--wall)","stroke-width":5});
   el("path",{d:arc(105.8),fill:"none",stroke:"var(--led)","stroke-width":1.2,opacity:.8});
-  /* 내야 흙 */
+  /* 내야 */
   el("path",{d:`M${HX},${HY} L${pt(38,-45).join(",")} A${38*S},${38*S} 0 0 1 ${pt(38,45).join(",")} Z`,fill:"var(--dirt)"});
   const b=27.4*S/Math.SQRT2;
   el("polygon",{points:`${HX},${HY} ${HX+b},${HY-b} ${HX},${HY-2*b} ${HX-b},${HY-b}`,fill:"var(--grass)"});
   for(const [x,y] of [[HX+b,HY-b],[HX,HY-2*b],[HX-b,HY-b]])el("rect",{x:x-3,y:y-3,width:6,height:6,fill:"var(--chalk)",transform:`rotate(45 ${x} ${y})`});
   el("circle",{cx:HX,cy:HY-18.4*S,r:5,fill:"var(--dirt)"});
-  /* 파울 라인 */
-  for(const d of [-45,45])el("line",{x1:HX,y1:HY,x2:pt(170,d)[0],y2:pt(170,d)[1],stroke:"var(--chalk)","stroke-width":1.4,opacity:.85});
+  for(const d of [-45,45])el("line",{x1:HX,y1:HY,x2:pt(196,d)[0],y2:pt(196,d)[1],stroke:"var(--chalk)","stroke-width":1.4,opacity:.85});
   el("polygon",{points:`${HX-5},${HY-4} ${HX+5},${HY-4} ${HX+5},${HY} ${HX},${HY+4} ${HX-5},${HY}`,fill:"var(--chalk)"});
   /* 거리 표시 */
-  for(const m of [120,140,160]){el("path",{d:arc(m,-44,44),fill:"none",stroke:"var(--chalk)","stroke-width":.6,"stroke-dasharray":"2 5",opacity:.35});
-    const [x,y]=pt(m,0);el("text",{x,y:y-4,"text-anchor":"middle","font-size":11,fill:"var(--dim)","font-family":"DotGothic16, monospace"}).textContent=m+"m";}
+  for(const m of [120,140,160,180]){el("path",{d:arc(m,-44,44),fill:"none",stroke:"var(--chalk)","stroke-width":.6,"stroke-dasharray":"2 5",opacity:.3});
+    const [x,y]=pt(m,0);el("text",{x,y:y-4,"text-anchor":"middle","font-size":11,fill:"var(--chalk)",opacity:.75,"font-family":"DotGothic16, monospace"}).textContent=m+"m";}
   const [fx,fy]=pt(105,0);el("text",{x:fx,y:fy-6,"text-anchor":"middle","font-size":11,fill:"var(--led)","font-family":"DotGothic16, monospace"}).textContent="100m";
+  const [gx,gy]=pt(188,-30);el("text",{x:gx,y:gy,"text-anchor":"middle","font-size":11,fill:"var(--led)",opacity:.8,"font-family":"DotGothic16, monospace"}).textContent="장외";
   svg.layer=el("g",{});
 }
 function fly(m){
-  const fence=m<100,deg=(Math.random()*76-38),target=fence?101:m,[tx,ty]=pt(target,deg),[ex,ey]=fence?pt(80,deg+(Math.random()*6-3)):[tx,ty];
+  const fo=m===0,fence=m===80,deg=(Math.random()*76-38),target=fo?62+Math.random()*16:fence?101:m,[tx,ty]=pt(target,deg),[ex,ey]=fence?pt(80,deg+(Math.random()*6-3)):[tx,ty];
   const trail=el("line",{x1:HX,y1:HY,x2:HX,y2:HY,stroke:"var(--ball)","stroke-width":1.5,"stroke-dasharray":"3 4",opacity:.7},svg.layer);
+  const shadow=el("circle",{cx:HX,cy:HY,r:3,fill:"#000",opacity:.35},svg.layer);
   const ball=el("circle",{cx:HX,cy:HY,r:4.5,fill:"var(--ball)"},svg.layer);
-  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches,T1=reduce?0:850,T2=fence&&!reduce?350:0,t0=performance.now();
+  let glove=null;
+  if(fo){const [gx0,gy0]=pt(target-10,deg+8);glove=el("circle",{cx:gx0,cy:gy0,r:6,fill:"none",stroke:"var(--chalk)","stroke-width":2},svg.layer);glove.dataset.x=gx0;glove.dataset.y=gy0;}
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches,T1=reduce?0:(fo?1100:900),T2=fence&&!reduce?350:0,t0=performance.now();
   (function step(now){const t=now-t0;
-    if(t<T1){const u=t/T1,e=1-(1-u)*(1-u),x=HX+(tx-HX)*e,y=HY+(ty-HY)*e,lift=Math.sin(u*Math.PI)*(fence?6:10);
-      ball.setAttribute("cx",x);ball.setAttribute("cy",y);ball.setAttribute("r",4.5+lift*.5);trail.setAttribute("x2",x);trail.setAttribute("y2",y);return requestAnimationFrame(step);}
-    if(t<T1+T2){const u=(t-T1)/T2,x=tx+(ex-tx)*u,y=ty+(ey-ty)*u;ball.setAttribute("cx",x);ball.setAttribute("cy",y);ball.setAttribute("r",4.5);return requestAnimationFrame(step);}
-    ball.setAttribute("cx",ex);ball.setAttribute("cy",ey);ball.setAttribute("r",4);
-    ball.setAttribute("fill",m>=160?"var(--led)":fence?"var(--dim)":"var(--ball)");trail.setAttribute("opacity",.18);trail.setAttribute("x2",tx);trail.setAttribute("y2",ty);
-    const lab=el("text",{x:Math.max(30,Math.min(570,ex)),y:ey-9,"text-anchor":"middle","font-size":13,fill:"var(--led)","font-family":"DotGothic16, monospace"},svg.layer);
-    lab.textContent=fence?"펜스 80m":m+"m";setTimeout(()=>lab.remove(),1800);
+    if(t<T1){const u=t/T1,e=1-(1-u)*(1-u),x=HX+(tx-HX)*e,y=HY+(ty-HY)*e,h=Math.sin(u*Math.PI)*(fo?26:fence?12:Math.min(40,m/5));
+      shadow.setAttribute("cx",x);shadow.setAttribute("cy",y);ball.setAttribute("cx",x);ball.setAttribute("cy",y-h);ball.setAttribute("r",4.5+h*.12);
+      trail.setAttribute("x2",x);trail.setAttribute("y2",y-h);
+      if(glove){const gx=+glove.dataset.x+(tx-glove.dataset.x)*u,gy=+glove.dataset.y+(ty-glove.dataset.y)*u;glove.setAttribute("cx",gx);glove.setAttribute("cy",gy);}
+      return requestAnimationFrame(step);}
+    if(t<T1+T2){const u=(t-T1)/T2,x=tx+(ex-tx)*u,y=ty+(ey-ty)*u;ball.setAttribute("cx",x);ball.setAttribute("cy",y);shadow.setAttribute("cx",x);shadow.setAttribute("cy",y);ball.setAttribute("r",4.5);return requestAnimationFrame(step);}
+    shadow.remove();ball.setAttribute("cx",ex);ball.setAttribute("cy",ey);ball.setAttribute("r",4);
+    ball.setAttribute("fill",m>=180?"var(--led)":fence||fo?"var(--dim)":"var(--ball)");trail.setAttribute("opacity",.18);trail.setAttribute("x2",tx);trail.setAttribute("y2",ty);
+    const lab=el("text",{x:Math.max(30,Math.min(570,ex)),y:ey-12,"text-anchor":"middle","font-size":13,fill:fo?"var(--out)":"var(--led)","font-family":"DotGothic16, monospace"},svg.layer);
+    lab.textContent=fo?"뜬공 아웃":fence?"펜스 80m":m+"m";setTimeout(()=>{lab.remove();if(glove)glove.remove();if(fo){ball.remove();trail.remove();}},1800);
   })(t0);
 }
 
@@ -237,7 +254,7 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 function lamps(n,max,cls){return Array.from({length:max},(_,i)=>`<span class="lamp ${i<n?cls:""}" style="display:inline-block;margin-right:3px"></span>`).join("");}
 function renderBoard(){
   $("sl").innerHTML=lamps(strikes,2,"s");$("ol").innerHTML=lamps(outs,MAXOUT,"o");
-  const hrs=homers.filter(h=>h.d>=100);
+  const hrs=homers.filter(h=>h.d>=95);
   $("hr").textContent=hrs.length;$("tot").textContent=homers.reduce((a,h)=>a+h.d,0).toLocaleString()+"m";
   $("max").textContent=homers.length?Math.max(...homers.map(h=>h.d))+"m":"–";
 }
@@ -261,15 +278,16 @@ function strike(why){
   if(strikes>=3){return out(`삼진! ${why}`);}
   $("msg").innerHTML=`<span class="k">스트라이크 ${strikes}</span> ${why}`;renderBoard();shake();clock=CLOCK;
 }
-function out(why){
-  const P=PROMPTS[order[cur]];outs++;log.push({q:P.q,a:null,why,P});
+function out(why,name){
+  const P=PROMPTS[order[cur]];outs++;log.push({q:P.q,a:null,fo:name||null,why,P});
   $("msg").innerHTML=`<span class="o">아웃!</span> ${why}`;renderBoard();
   if(outs>=MAXOUT)return end();next();
 }
 function hit(i,raw,how){
   const P=PROMPTS[order[cur]],d=P.dist.get(i),name=PLAYERS[i].n;
+  if(d===0){fly(0);return out(`<b>${esc(name)}</b> 뜬공. 너무너무 뻔한 정답이에요`,name);}
   homers.push({d});log.push({q:P.q,a:name,d,P});fly(d);
-  const what=d>=165?`<span class="hr">장외홈런!</span> 크릴리온 정답`:d<100?"펜스 직격. 너무 뻔한 정답이에요":`<span class="hr">홈런!</span>`;
+  const what=d>=190?`<span class="hr">장외홈런!</span> 크릴리온 정답`:d<95?"펜스 직격. 꽤 뻔한 정답이에요":`<span class="hr">홈런!</span>`;
   const note=how?` <span class="hint" style="display:inline">(‘${esc(raw)}’ → ‘${esc(name)}’${how})</span>`:"";
   $("msg").innerHTML=`<b>${esc(name)}</b> ${what} <b class="hr">${d}m</b>${note}`;
   next();
@@ -296,11 +314,11 @@ $("f").addEventListener("submit",ev=>{ev.preventDefault();if(asking)return;
 });
 $("skip").addEventListener("click",()=>out("건너뛰기"));
 function end(){clearInterval(timer);closeAsk();$("play").hidden=true;$("end").hidden=false;
-  const tot=homers.reduce((a,h)=>a+h.d,0),nhr=homers.filter(h=>h.d>=100).length;$("final").textContent=tot.toLocaleString();
+  const tot=homers.reduce((a,h)=>a+h.d,0),nhr=homers.filter(h=>h.d>=95).length;$("final").textContent=tot.toLocaleString();
   $("lbcard").hidden=false;
   if(tot>0)saveScore(tot,Math.max(...homers.map(h=>h.d)),nhr);else $("savenote").textContent="비거리가 0m라 기록은 남지 않아요.";
   $("endsum").textContent=homers.length?`홈런 ${nhr}개 · 펜스 직격 ${homers.length-nhr}개 · 최장 ${Math.max(...homers.map(h=>h.d))}m`:"안타가 없었어요.";
-  $("endlog").innerHTML=log.map(x=>`<li><span>${esc(x.q)}<br><small>크릴리온 정답: ${esc(PLAYERS[x.P.gem].n)}</small></span>${x.a?`<span>${esc(x.a)}</span><span class="d">${x.d}m</span>`:`<span class="o">아웃</span><span class="d">–</span>`}</li>`).join("");}
+  $("endlog").innerHTML=log.map(x=>`<li><span>${esc(x.q)}<br><small>크릴리온 정답: ${esc(PLAYERS[x.P.gem].n)}</small></span>${x.a?`<span>${esc(x.a)}</span><span class="d">${x.d}m</span>`:`<span class="o">${x.fo?esc(x.fo)+" 뜬공":"아웃"}</span><span class="d">–</span>`}</li>`).join("");}
 /* ---------- 리더보드 (Netlify Functions) ---------- */
 let myName="",lbKey="max";let LB={max:[],total:[]};
 const MYKEY=(()=>{try{let k=localStorage.getItem("kbo_key");if(!k){k=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(36).padStart(2,"0")).join("").slice(0,24);localStorage.setItem("kbo_key",k);}return k;}catch(e){return Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);}})();

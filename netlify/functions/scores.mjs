@@ -3,8 +3,8 @@
 // POST /api/scores {key,name,total,max,hr} → 개인 최고 기록 갱신
 import { getStore } from "@netlify/blobs";
 
-const MAX_DIST = 165;          // 한 타구 최대 비거리
-const MAX_TOTAL = 165 * 300;   // 상식적인 총 비거리 상한
+const MAX_DIST = 190;          // 한 타구 최대 비거리
+const MAX_TOTAL = 190 * 300;   // 상식적인 총 비거리 상한
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } });
 
@@ -29,7 +29,7 @@ export default async (req) => {
   const name = String(b.name || "").trim().slice(0, 12) || "익명 타자";
   const total = Math.floor(Number(b.total)), max = Math.floor(Number(b.max)), hr = Math.floor(Number(b.hr));
   if (!/^[a-z0-9]{16,40}$/.test(key)) return json({ error: "bad key" }, 400);
-  if (!(total > 0 && total <= MAX_TOTAL && max >= 80 && max <= MAX_DIST && max <= total && hr >= 0 && hr <= total / 100))
+  if (!(total > 0 && total <= MAX_TOTAL && max >= 80 && max <= MAX_DIST && max <= total && hr >= 0 && hr <= total / 95))
     return json({ error: "기록이 올바르지 않아요." }, 400);
 
   const board = await loadBoard(store);
